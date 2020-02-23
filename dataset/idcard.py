@@ -31,7 +31,10 @@ class IDCardDataset(DatasetSplit):
             if not os.path.exists(raw_image_path):
                 print('{} is missing images at {}. Skiped!'.format(sample_path, raw_image_path))
                 continue
-            roidb = {"file_name": raw_image_path}
+            roidb = {
+                "file_name": raw_image_path,
+                "image_id": raw_anno['file_name']
+                }
             boxes = []
             segs = []
             classes = []
