@@ -1,6 +1,6 @@
 git+https://github.com/tensorpack/tensorpack.git
 opencv-python==4.1.0.25
-tensorflow-gpu==1.15
+#tensorflow-gpu==1.15
 tqdm
 git+https://github.com/cocodataset/cocoapi.git#subdirectory=PythonAPI
 trains

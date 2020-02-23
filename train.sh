@@ -6,5 +6,5 @@ python3 train.py --config DATA.BASEDIR=data/result_crop_augmented \
                           TRAIN.CHECKPOINT_PERIOD=1 \
                           DATA.NUM_WORKERS=2 \
                           EXPERIMENT_NAME=tensorpack_maskRCNN_docrop_and_rotate_overfit_test \
-                          --load weights/COCO-MaskRCNN-R50C41x.npz
+                          --load weights/COCO-MaskRCNN-R50C41x.npz \
                           --logdir log/overfit_test
