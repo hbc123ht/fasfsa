@@ -48,6 +48,9 @@ class IDCardDataset(DatasetSplit):
             ret.append(roidb)
         return ret
 
+    def inference_roidbs(self):
+        return self.training_roidbs()
+
 
 def register_idcard(basedir):
     for split in ["train", "val"]:
