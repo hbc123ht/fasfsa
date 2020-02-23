@@ -136,3 +136,4 @@ dmypy.json
 data
 weights
 .DS_Store
+.vscode/settings.json
