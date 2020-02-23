@@ -85,6 +85,8 @@ class AttrDict():
 
 config = AttrDict()
 _C = config     # short alias to avoid coding
+# TRAINS experiment name
+_C.EXPERIMENT_NAME = 'tensorpack_maskRCNN_docrop_and_rotate'
 
 # mode flags ---------------------
 _C.TRAINER = 'replicated'  # options: 'horovod', 'replicated'
@@ -92,12 +94,12 @@ _C.MODE_MASK = True        # Faster R-CNN or Mask R-CNN
 _C.MODE_FPN = True
 
 # dataset -----------------------
-_C.DATA.BASEDIR = '/path/to/your/DATA/DIR'
+_C.DATA.BASEDIR = 'data/result_crop_augmented'
 # All available dataset names are defined in `dataset/coco.py:register_coco`.
 # All TRAIN dataset will be concatenated for training.
-_C.DATA.TRAIN = ('coco_train2017',)   # i.e. trainval35k
+_C.DATA.TRAIN = ('idcard_train',)   # i.e. trainval35k
 # Each VAL dataset will be evaluated separately (instead of concatenated)
-_C.DATA.VAL = ('coco_val2017',)  # AKA minival2014
+_C.DATA.VAL = ('idcard_val',)  # AKA minival2014
 
 # These two configs will be populated later inside `finalize_configs`.
 _C.DATA.NUM_CATEGORY = -1  # without the background class (e.g., 80 for COCO)
@@ -187,8 +189,8 @@ _C.RPN.HEAD_DIM = 1024      # used in C4 only
 
 # RPN proposal selection -------------------------------
 # for C4
-_C.RPN.TRAIN_PRE_NMS_TOPK = 12000
-_C.RPN.TRAIN_POST_NMS_TOPK = 2000
+_C.RPN.TRAIN_PRE_NMS_TOPK = 40
+_C.RPN.TRAIN_POST_NMS_TOPK = 10
 # _C.RPN.TEST_PRE_NMS_TOPK = 6000
 # _C.RPN.TEST_POST_NMS_TOPK = 1000   # if you encounter OOM in inference, set this to a smaller number
 _C.RPN.TEST_PRE_NMS_TOPK = 20
@@ -237,6 +239,7 @@ _C.TEST.RESULTS_PER_IM = 100
 
 _C.freeze()  # avoid typo / wrong config keys
 
+_C.DATA.CLASS_NAMES = ['background', 'page', 'profile_image', 'van_tay', 'passport_code']
 
 def finalize_configs(is_training):
     """
