@@ -233,7 +233,7 @@ def register_coco(basedir):
     class_names = ["BG"] + class_names
 
     for split in ["trainidcard", "validcard"]:
-        name = "coco_" + split
+        name = split
         DatasetRegistry.register(name, lambda x=split: COCODetection(basedir, x))
         DatasetRegistry.register_metadata(name, 'class_names', class_names)
 
