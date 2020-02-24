@@ -44,11 +44,12 @@ def convert_subset(subset_path):
             'width': width,
             'id': id
         })
-        for each_object in raw_anno['regions']:
+        for index, each_object in enumerate(raw_anno['regions']):
             x1, y1, x2, y2 = each_object['bbox']
             anno = {
-                'segmentation': [[[item for sublist in each_object['segmentation'] for item in sublist]]],
-                'area': 0,
+                'id': '{}_{}'.format(id, index),
+                'segmentation': [[item for sublist in each_object['segmentation'] for item in sublist]],
+                'area': (x2-x1)*(y2-y1),
                 'iscrowd': 0,
                 'image_id': id,
                 'category_id': classname_to_id[each_object['class']],
