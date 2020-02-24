@@ -29,15 +29,15 @@ def convert_subset(subset_path):
     }
 
     classname_to_id = {each['name']: each['id'] for each in coco_json['categories']}
-
+    object_index = 0
     all_sample = glob.glob(os.path.join(subset_path, 'annos', '*.json'))
-    for sample in tqdm(all_sample):
+    for sample_index, sample in tqdm(enumerate(all_sample), total=len(all_sample)):
         raw_anno = json.loads(open(sample, 'r').read())
         file_path = os.path.join(subset_path, 'images', raw_anno['file_name'])
         if not os.path.exists(file_path):
             continue
         height, width, _ = cv2.imread(file_path).shape
-        id = raw_anno['file_name'].replace('.png', '')
+        id = sample_index
         coco_json['images'].append({
             'file_name': raw_anno['file_name'],
             'height': height,
@@ -47,7 +47,7 @@ def convert_subset(subset_path):
         for index, each_object in enumerate(raw_anno['regions']):
             x1, y1, x2, y2 = each_object['bbox']
             anno = {
-                'id': '{}_{}'.format(id, index),
+                'id': object_index,
                 'segmentation': [[item for sublist in each_object['segmentation'] for item in sublist]],
                 'area': (x2-x1)*(y2-y1),
                 'iscrowd': 0,
@@ -56,6 +56,7 @@ def convert_subset(subset_path):
                 'bbox': [x1, y1, x2-x1, y2-y1]
             }
             coco_json['annotations'].append(anno)
+            object_index += 1
     return coco_json
 
 if __name__ == "__main__":
