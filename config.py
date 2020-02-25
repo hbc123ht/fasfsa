@@ -239,7 +239,7 @@ _C.TEST.RESULTS_PER_IM = 100
 
 _C.freeze()  # avoid typo / wrong config keys
 
-# _C.DATA.CLASS_NAMES = ['background', 'page', 'profile_image', 'van_tay', 'passport_code']
+_C.DATA.CLASS_NAMES = ['background', 'page', 'profile_image', 'van_tay', 'passport_code']
 
 def finalize_configs(is_training):
     """

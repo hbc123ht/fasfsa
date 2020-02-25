@@ -3,6 +3,7 @@
 
 import numpy as np
 import cv2
+import tensorflow as tf
 
 from tensorpack.dataflow import RNGDataFlow
 from tensorpack.dataflow.imgaug import ImageAugmentor, ResizeTransform
@@ -164,3 +165,21 @@ try:
 
 except ImportError:
     from utils.np_box_ops import iou as np_iou  # noqa
+
+
+def load_graph(frozen_graph_filename):
+    with tf.io.gfile.GFile(frozen_graph_filename, "rb") as f:
+        graph_def = tf.compat.v1.GraphDef()
+        graph_def.ParseFromString(f.read())
+
+    with tf.Graph().as_default() as graph:
+        tf.import_graph_def(
+            graph_def,
+            input_map=None,
+            return_elements=None,
+            name="import",
+            op_dict=None,
+            producer_op_list=None
+        )
+
+        return graph
