@@ -4,7 +4,8 @@
 import numpy as np
 import cv2
 import tensorflow as tf
-
+from shapely import affinity
+from shapely.geometry import Polygon
 from tensorpack.dataflow import RNGDataFlow
 from tensorpack.dataflow.imgaug import ImageAugmentor, ResizeTransform
 
@@ -183,3 +184,11 @@ def load_graph(frozen_graph_filename):
         )
 
         return graph
+
+
+def rotate_polygon(polygon, angle, raw_img_shape, offset_x=0, offset_y=0):
+    p = Polygon(polygon)
+    p = affinity.rotate(p, angle, (raw_img_shape[1]//2, raw_img_shape[0]//2))
+    new_p = p.exterior.coords[:]
+    new_p = [(int(e[0]-offset_x), int(e[1]-offset_y)) for e in new_p][:-1]
+    return new_p
