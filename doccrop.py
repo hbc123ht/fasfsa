@@ -192,10 +192,21 @@ class MaskRCNNDocCrop():
         top_left_y = min([each[1] for each in rotated_full_page])
         for obj in all_object:
             rotated_obj = obj
+
+            # For bb
+            x1, y1, x2, y2 = [int(each) for each in obj.box]
+            org_bb = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
+            rotated_bb = rotate_polygon(
+                org_bb, angle, raw_img_shape, top_left_x, top_left_y)
+            rotated_bb = [item for sublist in [rotated_bb[0], rotated_bb[2]] for item in sublist]
+            
+            # For polygon
             org_polygon = [(each[0][0], each[0][1]) for each in obj.polygon]
             rotated_polygon = rotate_polygon(
                 org_polygon, angle, raw_img_shape, top_left_x, top_left_y)
-            rotated_obj._replace(polygon=rotated_polygon)
+            rotated_polygon = np.expand_dims(np.array(rotated_polygon, dtype=np.int32), axis=1)
+
+            rotated_obj = rotated_obj._replace(polygon=rotated_polygon, box=rotated_bb)
             new_object.append(rotated_obj)
         return new_object
 
@@ -252,14 +263,40 @@ class MaskRCNNDocCrop():
                 return each_object
         return None
 
-    def big_rotate_without_anchor(self, page, all_object):
-        pass
+    def big_rotate_without_anchor(self, cropped_page, page, all_object):
+        h, w, _ = cropped_page.shape
+        if h > w:
+           angle = 90
+           before_rotate_shape = cropped_page.shape[:-1]
+           cropped_page = imutils.rotate_bound(cropped_page, angle, cval=(255, 255, 255))
+           after_rotate_shape = cropped_page.shape[:-1]
+           page = self.rotate_anno([page], angle, after_rotate_shape, before_rotate_shape)[0]
+           all_object = self.rotate_anno(all_object, angle, after_rotate_shape, before_rotate_shape)
+        return cropped_page, page, all_object
 
-    def big_rotate_with_anchor(self, page, all_object, anchor_field):
+    def big_rotate_with_anchor(self, cropped_page, page, all_object, anchor_field):
+        anchor_object = self.find_object_by_name(all_object, anchor_field)
+        anchor_polygon = Polygon([(each[0][0], each[0][1]) for each in anchor_object.polygon])
+        if not anchor_polygon.is_valid:
+            anchor_polygon = anchor_polygon.buffer(0)
+        anchor_points = anchor_polygon.centroid.coords[0]
+        page_height, page_width, _ = cropped_page.shape
+        up_side_down = False
         if anchor_field == 'profile_image' or 'van_tay':
-            anchor_object = self.find_object_by_name(all_object, anchor_field)
-
-        return
+            if anchor_points[0] >= 0.5*page_width:
+                up_side_down = True
+        elif anchor_field == 'passport_code':
+            if anchor_points[1] <= 0.5*page_height:
+                up_side_down = True
+        if up_side_down:
+            for i in range(2):  # 180 deg
+                angle = 90
+                before_rotate_shape = cropped_page.shape[:-1]
+                cropped_page = imutils.rotate_bound(cropped_page, angle, cval=(255, 255, 255))
+                after_rotate_shape = cropped_page.shape[:-1]
+                page = self.rotate_anno([page], angle, after_rotate_shape, before_rotate_shape)[0]
+                all_object = self.rotate_anno(all_object, angle, after_rotate_shape, before_rotate_shape)
+        return cropped_page, page, all_object
 
     def crop_and_rotate(self, image, debug_id=None):
         cropped_result = self.predict_crop(image, debug_id)
@@ -296,7 +333,7 @@ class MaskRCNNDocCrop():
             after_rotate_shape = cropped_page.shape[:-1]
 
             # After this gota crop the page and refine all polygon again
-            each_page = self.rotate_anno([each_page], angle, before_rotate_shape, after_rotate_shape)[0]
+            each_page = self.rotate_anno([each_page], angle, after_rotate_shape, before_rotate_shape)[0]
             page_polygon = [(each[0][0], each[0][1]) for each in each_page.polygon]
             all_X = [each[0] for each in page_polygon]
             all_Y = [each[1] for each in page_polygon]
@@ -304,39 +341,45 @@ class MaskRCNNDocCrop():
             cropped_page = cropped_page[page_bbox[1]:page_bbox[3], page_bbox[0]:page_bbox[2]]
             each_page = self.refine_object_location(page_bbox, [each_page])[0]
             if other_objects:
-                other_objects = self.rotate_anno(other_objects, angle, before_rotate_shape, after_rotate_shape)
+                other_objects = self.rotate_anno(other_objects, angle, after_rotate_shape, before_rotate_shape)
                 other_objects = self.refine_object_location(page_bbox, other_objects)
-            
-            # viz_img = cv2.polylines(cropped_page, [x.polygon for x in other_objects], isClosed=True, color=(0, 255, 255), thickness=2)
-            # cv2.imwrite('mask.png', viz_img)
-            # import ipdb; ipdb.set_trace()
-            
-            # # Now we do big rotation like 90 or 180 :P
-            # each_page, other_objects = self.big_rotate_without_anchor(each_page, other_objects)
+            viz_img = cv2.polylines(cropped_page.copy(), [x.polygon for x in other_objects], isClosed=True, color=(0, 255, 255), thickness=2)
+            cv2.imwrite('final1.png', viz_img)
 
-            # # Then use some anchor point to correct upsidedown cases
-            # other_object_name = [self.id_to_class_name(each.class_id) for each in other_objects]
-            # # If fingerprint, face and mrz all appear, use the one with highest confidents
-            # # Priority profile image and fingerprint first
-            # most_conf = max(other_objects, key=lambda x: x.score)
-            # anchor_field = self.id_to_class_name[most_conf.class_id]
-            # do_it = False
-            # if 'profile_image' in other_object_name and anchor_field != 'profile_image':
-            #     profile_image_object = other_objects[other_object_name.index('profile_image')]
-            #     if abs(profile_image_object.score-most_conf.score) <= 0.05:
-            #         anchor_field = 'profile_image'
-            #         do_it = True
-            # if not do_it and 'van_tay' in other_object_name and anchor_field != 'van_tay':
-            #     profile_image_object = other_objects[other_object_name.index('van_tay')]
-            #     if abs(profile_image_object.score-most_conf.score) <= 0.05:
-            #         anchor_field = 'van_tay'
-            # each_page, other_objects = self.big_rotate_with_anchor(each_page, other_objects, anchor_field)
+            # Now we do big rotation like 90 or 180 :P
+            cropped_page, each_page, other_objects = self.big_rotate_without_anchor(cropped_page, each_page, other_objects)
+            viz_img = cv2.polylines(cropped_page.copy(), [x.polygon for x in other_objects], isClosed=True, color=(0, 255, 255), thickness=2)
+            cv2.imwrite('final2.png', viz_img)
+
+            # Then use some anchor point to correct upsidedown cases
+            other_object_name = [self.id_to_class_name[each.class_id] for each in other_objects]
+            # If fingerprint, face and mrz all appear, use the one with highest confidents
+            # Priority profile image and fingerprint first
+            most_conf = max(other_objects, key=lambda x: x.score)
+            anchor_field = self.id_to_class_name[most_conf.class_id]
+            do_it = False
+            if 'profile_image' in other_object_name and anchor_field != 'profile_image':
+                profile_image_object = other_objects[other_object_name.index('profile_image')]
+                if abs(profile_image_object.score-most_conf.score) <= 0.05:
+                    anchor_field = 'profile_image'
+                    do_it = True
+            if not do_it and 'van_tay' in other_object_name and anchor_field != 'van_tay':
+                profile_image_object = other_objects[other_object_name.index('van_tay')]
+                if abs(profile_image_object.score-most_conf.score) <= 0.05:
+                    anchor_field = 'van_tay'
+            cropped_page, each_page, other_objects = self.big_rotate_with_anchor(
+                cropped_page, each_page, other_objects, anchor_field)
+            
+            viz_img = cv2.polylines(cropped_page.copy(), [x.polygon for x in other_objects], isClosed=True, color=(0, 255, 255), thickness=2)
+            cv2.imwrite('final3.png', viz_img)
+
+            return cropped_page, each_page, other_objects
 
 
 if __name__ == "__main__":
     model = MaskRCNNDocCrop(debug=True)
     all_samples = glob.glob('/Users/linus/Downloads/passport 2/passport_other_countries/others/*')
-    all_samples = ['/Users/linus/techainer/vietnamese-identity-card/data/failcase/meh/IMG_0817.JPG']
+    all_samples = ['/Users/linus/techainer/vietnamese-identity-card/data/failcase/meh/none+crop.jpg']
     for sample in tqdm(all_samples):
         print(sample)
         img = cv2.imread(sample)
