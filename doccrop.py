@@ -299,10 +299,13 @@ class MaskRCNNDocCrop():
         return cropped_page, page, all_object
 
     def crop_and_rotate(self, image, debug_id=None):
+        start_time = time.time()
         cropped_result = self.predict_crop(image, debug_id)
         all_pages_result = [(index, each) for index, each in enumerate(cropped_result) if each.class_id == 1]
         results = []
         for page_index, each_page in all_pages_result:
+            raw_page_polygon = each_page.polygon # For later return
+
             # Find what other object are accosiated with this page
             other_objects = self.get_overlap_object(each_page, page_index, cropped_result)
             
@@ -337,19 +340,29 @@ class MaskRCNNDocCrop():
             page_polygon = [(each[0][0], each[0][1]) for each in each_page.polygon]
             all_X = [each[0] for each in page_polygon]
             all_Y = [each[1] for each in page_polygon]
-            page_bbox = [min(all_X), min(all_Y), max(all_X), max(all_Y)]
+
+            # Practice show I should extend the crop a litte bit to avoid bad mask arround the border
+            current_height, current_width, _ = cropped_page.shape
+            page_bbox = [max(0, min(all_X)-int(0.15*current_width)), \
+                         max(0, min(all_Y)-int(0.15*current_height)), \
+                         min(current_width, max(all_X)+int(0.1*current_width)), \
+                         min(current_height, max(all_Y)+int(0.1*current_height))]
             cropped_page = cropped_page[page_bbox[1]:page_bbox[3], page_bbox[0]:page_bbox[2]]
             each_page = self.refine_object_location(page_bbox, [each_page])[0]
             if other_objects:
                 other_objects = self.rotate_anno(other_objects, angle, after_rotate_shape, before_rotate_shape)
                 other_objects = self.refine_object_location(page_bbox, other_objects)
-            viz_img = cv2.polylines(cropped_page.copy(), [x.polygon for x in other_objects], isClosed=True, color=(0, 255, 255), thickness=2)
-            cv2.imwrite('final1.png', viz_img)
+            
+            if self.debug:
+                viz_img = cv2.polylines(cropped_page.copy(), [x.polygon for x in other_objects], isClosed=True, color=(0, 255, 255), thickness=2)
+                cv2.imwrite('final1.png', viz_img)
 
             # Now we do big rotation like 90 or 180 :P
             cropped_page, each_page, other_objects = self.big_rotate_without_anchor(cropped_page, each_page, other_objects)
-            viz_img = cv2.polylines(cropped_page.copy(), [x.polygon for x in other_objects], isClosed=True, color=(0, 255, 255), thickness=2)
-            cv2.imwrite('final2.png', viz_img)
+            
+            if self.debug:
+                viz_img = cv2.polylines(cropped_page.copy(), [x.polygon for x in other_objects], isClosed=True, color=(0, 255, 255), thickness=2)
+                cv2.imwrite('final2.png', viz_img)
 
             # Then use some anchor point to correct upsidedown cases
             other_object_name = [self.id_to_class_name[each.class_id] for each in other_objects]
@@ -370,11 +383,37 @@ class MaskRCNNDocCrop():
             cropped_page, each_page, other_objects = self.big_rotate_with_anchor(
                 cropped_page, each_page, other_objects, anchor_field)
             
-            viz_img = cv2.polylines(cropped_page.copy(), [x.polygon for x in other_objects], isClosed=True, color=(0, 255, 255), thickness=2)
-            cv2.imwrite('final3.png', viz_img)
+            if self.debug:
+                viz_img = cv2.polylines(cropped_page.copy(), [x.polygon for x in other_objects], isClosed=True, color=(0, 255, 255), thickness=2)
+                cv2.imwrite('final3.png', viz_img)
 
-            return cropped_page, each_page, other_objects
+            # Now just do some minor formating
+            return_res = []
+            for field in ['profile_image', 'passport_code']:
+                if field in other_object_name:
+                    obj = other_objects[other_object_name.index(field)]
+                    temp_res = {
+                        'polys': [(each[0][0], each[0][1]) for each in obj.polygon],
+                        'conf': obj.score
+                    }
+                else:
+                    temp_res = None
+                return_res.append(temp_res)
 
+            face_res, mrz_res = return_res
+            results.append({
+                'crop_rotated_page': {
+                    'image': cropped_page,
+                    'polys': [(each[0][0], each[0][1]) for each in raw_page_polygon],
+                    'conf': each_page.score,
+                },
+                'face': face_res,
+                'mrz': mrz_res
+            })
+
+        if self.debug:
+            print('Crop and rotate tooks {} secs'.format(time.time()-start_time))
+        return results
 
 if __name__ == "__main__":
     model = MaskRCNNDocCrop(debug=True)
@@ -384,3 +423,4 @@ if __name__ == "__main__":
         print(sample)
         img = cv2.imread(sample)
         results = model.crop_and_rotate(img, debug_id=os.path.basename(sample))
+        print(results)
