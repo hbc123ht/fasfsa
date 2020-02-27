@@ -187,7 +187,15 @@ def load_graph(frozen_graph_filename):
 
 
 def rotate_polygon(polygon, angle, raw_img_shape, offset_x=0, offset_y=0):
-    p = Polygon(polygon)
+    try:
+        p = Polygon(polygon)
+    except ValueError:
+        # Use bb instead
+        all_X = [each[0] for each in polygon]
+        all_Y = [each[1] for each in polygon]
+        x1, x2, y1, y2 = min(all_X), min(all_Y), max(all_X), max(all_Y)
+        bb = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
+        p = Polygon(bb)
     p = affinity.rotate(p, angle, (raw_img_shape[1]//2, raw_img_shape[0]//2))
     new_p = p.exterior.coords[:]
     new_p = [(int(e[0]-offset_x), int(e[1]-offset_y)) for e in new_p][:-1]

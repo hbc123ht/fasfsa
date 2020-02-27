@@ -34,7 +34,7 @@ mask: None, or a binary image of the original image shape
 
 class MaskRCNNDocCrop():
     def __init__(self,
-                 model_path='log/MaskRCNN-R50C41x-COCO_finetune-docrop_and_rotate/frozen_model.pb',
+                 model_path='weights/MaskRCNN-R50C41x-COCO_finetune-docrop_and_rotate_24500.pb',
                  canvas_size=512,
                  debug=False):
         if not tf.test.is_gpu_available():
@@ -172,13 +172,29 @@ class MaskRCNNDocCrop():
 
         if self.debug:
             print('Crop tooks {} secs.'.format(time.time()-start_time))
-            debug_id = uuid.uuid4() if debug_id is None else debug_id
-            debug_path = os.path.join('./debugs/', '{}.png'.format(debug_id))
-            # os.makedirs(debug_path, exist_ok=True)
+            debug_id = str(uuid.uuid4()) if debug_id is None else debug_id
+            debug_path = os.path.join('./debugs/', debug_id)
+            os.makedirs(debug_path, exist_ok=True)
             final = draw_final_outputs_blackwhite(img, results)
-            cv2.imwrite(debug_path, final)
-            # cv2.imwrite(os.path.join(debug_path, 'crop.png'), final)
+            # cv2.imwrite(debug_path, final)
+            cv2.imwrite(os.path.join(debug_path, 'prediction.png'), final)
+            return results, debug_path
         return results
+
+    def create_shapely_polygon(self, each_object):
+        try:
+            obj_polygon = Polygon([(each[0][0], each[0][1])
+                                   for each in each_object.polygon])
+            if not obj_polygon.is_valid:
+                obj_polygon = obj_polygon.buffer(0)
+        except ValueError:
+            # Use bb instead
+            x1, y1, x2, y2 = [int(each) for each in each_object.box]
+            org_bb = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
+            obj_polygon = Polygon(org_bb)
+            if not obj_polygon.is_valid:
+                obj_polygon = obj_polygon.buffer(0)
+        return obj_polygon
 
     def rotate_anno(self, all_object, angle, raw_img_shape, before_shape=None):
         new_object = []
@@ -198,29 +214,30 @@ class MaskRCNNDocCrop():
             org_bb = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
             rotated_bb = rotate_polygon(
                 org_bb, angle, raw_img_shape, top_left_x, top_left_y)
-            rotated_bb = [item for sublist in [rotated_bb[0], rotated_bb[2]] for item in sublist]
-            
+            rotated_bb = [item for sublist in [
+                rotated_bb[0], rotated_bb[2]] for item in sublist]
+
             # For polygon
             org_polygon = [(each[0][0], each[0][1]) for each in obj.polygon]
             rotated_polygon = rotate_polygon(
                 org_polygon, angle, raw_img_shape, top_left_x, top_left_y)
-            rotated_polygon = np.expand_dims(np.array(rotated_polygon, dtype=np.int32), axis=1)
+            rotated_polygon = np.expand_dims(
+                np.array(rotated_polygon, dtype=np.int32), axis=1)
 
-            rotated_obj = rotated_obj._replace(polygon=rotated_polygon, box=rotated_bb)
+            rotated_obj = rotated_obj._replace(
+                polygon=rotated_polygon, box=rotated_bb)
             new_object.append(rotated_obj)
         return new_object
 
     def get_overlap_object(self, page, page_index, cropped_result_raw):
         cropped_result = copy.deepcopy(cropped_result_raw)
-        page_polygon = Polygon([(each[0][0], each[0][1]) for each in page.polygon])
+        page_polygon = self.create_shapely_polygon(page)
         if not page_polygon.is_valid:
             page_polygon = page_polygon.buffer(0)
         del cropped_result[page_index]
         overlaped_object = []
         for each_object in cropped_result:
-            obj_polygon = Polygon([(each[0][0], each[0][1]) for each in each_object.polygon])
-            if not obj_polygon.is_valid:
-                obj_polygon = obj_polygon.buffer(0)
+            obj_polygon = self.create_shapely_polygon(each_object)
             intersec_percentage = obj_polygon.intersection(
                 page_polygon).area/obj_polygon.area
             if intersec_percentage >= 0.85:
@@ -228,17 +245,14 @@ class MaskRCNNDocCrop():
         return overlaped_object
 
     def keep_only_biggest(self, all_object):
-        group_dict = {k.class_id:[] for k in all_object}
+        group_dict = {k.class_id: [] for k in all_object}
         filtered_object = []
         for each in all_object:
             group_dict[each.class_id].append(each)
         for each_group, all_members in group_dict.items():
             area_list = []
             for each_member in all_members:
-                each_polygon = Polygon(
-                    [(each[0][0], each[0][1]) for each in each_member.polygon])
-                if not each_polygon.is_valid:
-                    each_polygon = each_polygon.buffer(0)
+                each_polygon = self.create_shapely_polygon(each_member)
                 area_list.append(each_polygon.area)
             filtered_object.append(all_members[np.argmax(area_list)])
         return filtered_object
@@ -249,11 +263,14 @@ class MaskRCNNDocCrop():
         for index, each in enumerate(other_objects):
             refined_object = each
             old_bb = refined_object.box
-            new_bb = np.array([old_bb[0]-x, old_bb[1]-y, old_bb[2]-x, old_bb[3]-y], dtype=np.int32)
+            new_bb = np.array(
+                [old_bb[0]-x, old_bb[1]-y, old_bb[2]-x, old_bb[3]-y], dtype=np.int32)
             old_polygon = np.squeeze(refined_object.polygon)
-            new_polygon = np.array([[e[0]-x, e[1]-y] for e in old_polygon], dtype=np.int32)
+            new_polygon = np.array([[e[0]-x, e[1]-y]
+                                    for e in old_polygon], dtype=np.int32)
             new_polygon = np.expand_dims(new_polygon, axis=1)
-            refined_object = refined_object._replace(box=new_bb, polygon=new_polygon)
+            refined_object = refined_object._replace(
+                box=new_bb, polygon=new_polygon)
             new_objects.append(refined_object)
         return new_objects
 
@@ -266,17 +283,20 @@ class MaskRCNNDocCrop():
     def big_rotate_without_anchor(self, cropped_page, page, all_object):
         h, w, _ = cropped_page.shape
         if h > w:
-           angle = 90
-           before_rotate_shape = cropped_page.shape[:-1]
-           cropped_page = imutils.rotate_bound(cropped_page, angle, cval=(255, 255, 255))
-           after_rotate_shape = cropped_page.shape[:-1]
-           page = self.rotate_anno([page], angle, after_rotate_shape, before_rotate_shape)[0]
-           all_object = self.rotate_anno(all_object, angle, after_rotate_shape, before_rotate_shape)
+            angle = 90
+            before_rotate_shape = cropped_page.shape[:-1]
+            cropped_page = imutils.rotate_bound(
+                cropped_page, angle, cval=(255, 255, 255))
+            after_rotate_shape = cropped_page.shape[:-1]
+            page = self.rotate_anno(
+                [page], angle, after_rotate_shape, before_rotate_shape)[0]
+            all_object = self.rotate_anno(
+                all_object, angle, after_rotate_shape, before_rotate_shape)
         return cropped_page, page, all_object
 
     def big_rotate_with_anchor(self, cropped_page, page, all_object, anchor_field):
         anchor_object = self.find_object_by_name(all_object, anchor_field)
-        anchor_polygon = Polygon([(each[0][0], each[0][1]) for each in anchor_object.polygon])
+        anchor_polygon = self.create_shapely_polygon(anchor_object)
         if not anchor_polygon.is_valid:
             anchor_polygon = anchor_polygon.buffer(0)
         anchor_points = anchor_polygon.centroid.coords[0]
@@ -292,26 +312,36 @@ class MaskRCNNDocCrop():
             for i in range(2):  # 180 deg
                 angle = 90
                 before_rotate_shape = cropped_page.shape[:-1]
-                cropped_page = imutils.rotate_bound(cropped_page, angle, cval=(255, 255, 255))
+                cropped_page = imutils.rotate_bound(
+                    cropped_page, angle, cval=(255, 255, 255))
                 after_rotate_shape = cropped_page.shape[:-1]
-                page = self.rotate_anno([page], angle, after_rotate_shape, before_rotate_shape)[0]
-                all_object = self.rotate_anno(all_object, angle, after_rotate_shape, before_rotate_shape)
+                page = self.rotate_anno(
+                    [page], angle, after_rotate_shape, before_rotate_shape)[0]
+                all_object = self.rotate_anno(
+                    all_object, angle, after_rotate_shape, before_rotate_shape)
         return cropped_page, page, all_object
 
     def crop_and_rotate(self, image, debug_id=None):
         start_time = time.time()
-        cropped_result = self.predict_crop(image, debug_id)
-        all_pages_result = [(index, each) for index, each in enumerate(cropped_result) if each.class_id == 1]
+        cropped_results = self.predict_crop(image, debug_id=debug_id)
+        if self.debug:
+            cropped_result, debug_path = cropped_results
+        else:
+            cropped_result = cropped_results
+        all_pages_result = [(index, each) for index, each in enumerate(
+            cropped_result) if each.class_id == 1]
         results = []
         for page_index, each_page in all_pages_result:
-            raw_page_polygon = each_page.polygon # For later return
+            raw_page_polygon = each_page.polygon  # For later return
 
             # Find what other object are accosiated with this page
-            other_objects = self.get_overlap_object(each_page, page_index, cropped_result)
-            
+            other_objects = self.get_overlap_object(
+                each_page, page_index, cropped_result)
+
             # Crop the page in raw img
             page_bbox = [int(each) for each in each_page.box]
-            cropped_page = image[page_bbox[1]:page_bbox[3], page_bbox[0]:page_bbox[2]]
+            cropped_page = image[page_bbox[1]
+                :page_bbox[3], page_bbox[0]:page_bbox[2]]
             # And then refine the page polygon
             each_page = self.refine_object_location(page_bbox, [each_page])[0]
 
@@ -319,7 +349,8 @@ class MaskRCNNDocCrop():
                 # Then clear the duplicate by one using the biggest
                 other_objects = self.keep_only_biggest(other_objects)
                 # And refine the accosiated location right now
-                other_objects = self.refine_object_location(page_bbox, other_objects)
+                other_objects = self.refine_object_location(
+                    page_bbox, other_objects)
 
             # Then do fine rotation for the whole group first
             # Now we estimate the rotation angle of the page
@@ -336,56 +367,73 @@ class MaskRCNNDocCrop():
             after_rotate_shape = cropped_page.shape[:-1]
 
             # After this gota crop the page and refine all polygon again
-            each_page = self.rotate_anno([each_page], angle, after_rotate_shape, before_rotate_shape)[0]
-            page_polygon = [(each[0][0], each[0][1]) for each in each_page.polygon]
+            each_page = self.rotate_anno(
+                [each_page], angle, after_rotate_shape, before_rotate_shape)[0]
+            page_polygon = [(each[0][0], each[0][1])
+                            for each in each_page.polygon]
             all_X = [each[0] for each in page_polygon]
             all_Y = [each[1] for each in page_polygon]
 
             # Practice show I should extend the crop a litte bit to avoid bad mask arround the border
             current_height, current_width, _ = cropped_page.shape
-            page_bbox = [max(0, min(all_X)-int(0.15*current_width)), \
-                         max(0, min(all_Y)-int(0.15*current_height)), \
-                         min(current_width, max(all_X)+int(0.1*current_width)), \
+            page_bbox = [max(0, min(all_X)-int(0.15*current_width)),
+                         max(0, min(all_Y)-int(0.15*current_height)),
+                         min(current_width, max(all_X)+int(0.1*current_width)),
                          min(current_height, max(all_Y)+int(0.1*current_height))]
-            cropped_page = cropped_page[page_bbox[1]:page_bbox[3], page_bbox[0]:page_bbox[2]]
+            cropped_page = cropped_page[page_bbox[1]
+                :page_bbox[3], page_bbox[0]:page_bbox[2]]
             each_page = self.refine_object_location(page_bbox, [each_page])[0]
             if other_objects:
-                other_objects = self.rotate_anno(other_objects, angle, after_rotate_shape, before_rotate_shape)
-                other_objects = self.refine_object_location(page_bbox, other_objects)
-            
+                other_objects = self.rotate_anno(
+                    other_objects, angle, after_rotate_shape, before_rotate_shape)
+                other_objects = self.refine_object_location(
+                    page_bbox, other_objects)
+
             if self.debug:
-                viz_img = cv2.polylines(cropped_page.copy(), [x.polygon for x in other_objects], isClosed=True, color=(0, 255, 255), thickness=2)
-                cv2.imwrite('final1.png', viz_img)
+                viz_img = cv2.polylines(cropped_page.copy(), [
+                                        x.polygon for x in other_objects], isClosed=True, color=(0, 255, 255), thickness=2)
+                cv2.imwrite(os.path.join(
+                    debug_path, 'rotate_step_1_page_{}.png'.format(page_index)), viz_img)
 
             # Now we do big rotation like 90 or 180 :P
-            cropped_page, each_page, other_objects = self.big_rotate_without_anchor(cropped_page, each_page, other_objects)
-            
-            if self.debug:
-                viz_img = cv2.polylines(cropped_page.copy(), [x.polygon for x in other_objects], isClosed=True, color=(0, 255, 255), thickness=2)
-                cv2.imwrite('final2.png', viz_img)
+            cropped_page, each_page, other_objects = self.big_rotate_without_anchor(
+                cropped_page, each_page, other_objects)
 
-            # Then use some anchor point to correct upsidedown cases
-            other_object_name = [self.id_to_class_name[each.class_id] for each in other_objects]
-            # If fingerprint, face and mrz all appear, use the one with highest confidents
-            # Priority profile image and fingerprint first
-            most_conf = max(other_objects, key=lambda x: x.score)
-            anchor_field = self.id_to_class_name[most_conf.class_id]
-            do_it = False
-            if 'profile_image' in other_object_name and anchor_field != 'profile_image':
-                profile_image_object = other_objects[other_object_name.index('profile_image')]
-                if abs(profile_image_object.score-most_conf.score) <= 0.05:
-                    anchor_field = 'profile_image'
-                    do_it = True
-            if not do_it and 'van_tay' in other_object_name and anchor_field != 'van_tay':
-                profile_image_object = other_objects[other_object_name.index('van_tay')]
-                if abs(profile_image_object.score-most_conf.score) <= 0.05:
-                    anchor_field = 'van_tay'
-            cropped_page, each_page, other_objects = self.big_rotate_with_anchor(
-                cropped_page, each_page, other_objects, anchor_field)
-            
             if self.debug:
-                viz_img = cv2.polylines(cropped_page.copy(), [x.polygon for x in other_objects], isClosed=True, color=(0, 255, 255), thickness=2)
-                cv2.imwrite('final3.png', viz_img)
+                viz_img = cv2.polylines(cropped_page.copy(), [
+                                        x.polygon for x in other_objects], isClosed=True, color=(0, 255, 255), thickness=2)
+                cv2.imwrite(os.path.join(
+                    debug_path, 'rotate_step_2_page_{}.png'.format(page_index)), viz_img)
+
+            other_object_name = []
+            if other_objects:
+                # Then use some anchor point to correct upsidedown cases
+                other_object_name = [self.id_to_class_name[each.class_id]
+                                     for each in other_objects]
+                # If fingerprint, face and mrz all appear, use the one with highest confidents
+                # Priority profile image and fingerprint first
+                most_conf = max(other_objects, key=lambda x: x.score)
+                anchor_field = self.id_to_class_name[most_conf.class_id]
+                do_it = False
+                if 'profile_image' in other_object_name and anchor_field != 'profile_image':
+                    profile_image_object = other_objects[other_object_name.index(
+                        'profile_image')]
+                    if abs(profile_image_object.score-most_conf.score) <= 0.05:
+                        anchor_field = 'profile_image'
+                        do_it = True
+                if not do_it and 'van_tay' in other_object_name and anchor_field != 'van_tay':
+                    profile_image_object = other_objects[other_object_name.index(
+                        'van_tay')]
+                    if abs(profile_image_object.score-most_conf.score) <= 0.05:
+                        anchor_field = 'van_tay'
+                cropped_page, each_page, other_objects = self.big_rotate_with_anchor(
+                    cropped_page, each_page, other_objects, anchor_field)
+
+            if self.debug:
+                viz_img = cv2.polylines(cropped_page.copy(), [
+                                        x.polygon for x in other_objects], isClosed=True, color=(0, 255, 255), thickness=2)
+                cv2.imwrite(os.path.join(
+                    debug_path, 'rotated_page_{}.png'.format(page_index)), viz_img)
 
             # Now just do some minor formating
             return_res = []
@@ -413,14 +461,17 @@ class MaskRCNNDocCrop():
 
         if self.debug:
             print('Crop and rotate tooks {} secs'.format(time.time()-start_time))
+            # with open(os.path.join(debug_path, 'crop_and_rotate.json'), 'w', encoding='utf-8') as f:
+            #     json.dump(results, f, ensure_ascii=False, indent=4)
         return results
+
 
 if __name__ == "__main__":
     model = MaskRCNNDocCrop(debug=True)
-    all_samples = glob.glob('/Users/linus/Downloads/passport 2/passport_other_countries/others/*')
-    all_samples = ['/Users/linus/techainer/vietnamese-identity-card/data/failcase/meh/none+crop.jpg']
+    all_samples = glob.glob(
+        '/Users/linus/Downloads/passport 2/passport_other_countries/others/*')
     for sample in tqdm(all_samples):
         print(sample)
         img = cv2.imread(sample)
         results = model.crop_and_rotate(img, debug_id=os.path.basename(sample))
-        print(results)
+        # print(results)
