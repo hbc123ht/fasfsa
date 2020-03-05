@@ -5,5 +5,5 @@ tqdm
 git+https://github.com/cocodataset/cocoapi.git#subdirectory=PythonAPI
 trains
 python-prctl
-Shapely3
+Shapely
 git+git://github.com/lamhoangtung/imutils
