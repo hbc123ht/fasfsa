@@ -97,7 +97,7 @@ _C.MODE_FPN = True
 _C.DATA.BASEDIR = 'data/result_crop_augmented'
 # All available dataset names are defined in `dataset/coco.py:register_coco`.
 # All TRAIN dataset will be concatenated for training.
-_C.DATA.TRAIN = ('trainidcard',)   # i.e. trainval35k
+_C.DATA.TRAIN = ('trainidcard', 'real_vnmb_500')   # i.e. trainval35k
 # Each VAL dataset will be evaluated separately (instead of concatenated)
 _C.DATA.VAL = ('validcard',)  # AKA minival2014
 
