@@ -97,9 +97,9 @@ _C.MODE_FPN = True
 _C.DATA.BASEDIR = 'data/result_crop_augmented'
 # All available dataset names are defined in `dataset/coco.py:register_coco`.
 # All TRAIN dataset will be concatenated for training.
-_C.DATA.TRAIN = ('trainidcard', 'real_vnmb_500')   # i.e. trainval35k
+_C.DATA.TRAIN = ('trainidcard', 'real_vnmb_500', 'trainidcard_2', 'vnmb_failcase', 'vnmb_failcase_2')   # i.e. trainval35k
 # Each VAL dataset will be evaluated separately (instead of concatenated)
-_C.DATA.VAL = ('validcard',)  # AKA minival2014
+_C.DATA.VAL = ('validcard', 'validcard_2', 'real_vnmb_500', 'vnmb_failcase_2')  # AKA minival2014
 
 # These two configs will be populated later inside `finalize_configs`.
 _C.DATA.NUM_CATEGORY = -1  # without the background class (e.g., 80 for COCO)
@@ -152,7 +152,7 @@ _C.TRAIN.STARTING_EPOCH = 1  # the first epoch to start with, useful to continue
 # Therefore, there is *no need* to modify the config if you only change the number of GPUs.
 
 _C.TRAIN.LR_SCHEDULE = "1x"      # "1x" schedule in detectron
-_C.TRAIN.EVAL_PERIOD = 50  # period (epochs) to run evaluation
+_C.TRAIN.EVAL_PERIOD = 20  # period (epochs) to run evaluation
 _C.TRAIN.CHECKPOINT_PERIOD = 20  # period (epochs) to save model
 
 # preprocessing --------------------
