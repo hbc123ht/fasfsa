@@ -8,7 +8,7 @@ from shapely import affinity
 from shapely.geometry import Polygon
 from tensorpack.dataflow import RNGDataFlow
 from tensorpack.dataflow.imgaug import ImageAugmentor, ResizeTransform
-
+import random
 
 class DataFromListOfDict(RNGDataFlow):
     def __init__(self, lst, keys, shuffle=False):
@@ -61,6 +61,22 @@ class CustomResize(ImageAugmentor):
             neww = neww * scale
         neww = int(neww + 0.5)
         newh = int(newh + 0.5)
+        return ResizeTransform(h, w, newh, neww, self.interp)
+
+
+class SquareAspectRatioResize(ImageAugmentor):
+    """
+    Try resizing with weird aspect ratio
+    """
+
+    def __init__(self, interp=cv2.INTER_LINEAR):
+        super(CustomResize, self).__init__()
+        self._init(locals())
+
+    def get_transform(self, img):
+        h, w = img.shape[:2]
+        newh = w
+        neww = h
         return ResizeTransform(h, w, newh, neww, self.interp)
 
 

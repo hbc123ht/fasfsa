@@ -19,7 +19,7 @@ from modeling.model_rpn import get_all_anchors
 from modeling.model_fpn import get_all_anchors_fpn
 from common import (
     CustomResize, DataFromListOfDict, box_to_point4,
-    filter_boxes_inside_shape, np_iou, point4_to_box, polygons_to_mask,
+    filter_boxes_inside_shape, np_iou, point4_to_box, polygons_to_mask, SquareAspectRatioResize
 )
 from config import config as cfg
 from dataset import DatasetRegistry, register_coco
@@ -73,8 +73,11 @@ class TrainingDataPreprocessor:
     def __init__(self, cfg):
         self.cfg = cfg
         self.aug = imgaug.AugmentorList([
+            imgaug.RandomApplyAug(SquareAspectRatioResize(), 0.075),
+            imgaug.RandomApplyAug(imgaug.RandomCropRandomShape(wmin=int(
+                0.75*cfg.PREPROC.TRAIN_SHORT_EDGE_SIZE[0]), hmin=int(0.75*cfg.PREPROC.TRAIN_SHORT_EDGE_SIZE[0])), 0.25),
             CustomResize(cfg.PREPROC.TRAIN_SHORT_EDGE_SIZE, cfg.PREPROC.MAX_SIZE),
-            imgaug.Flip(horiz=True)
+            imgaug.RandomApplyAug(imgaug.Flip(horiz=True), 0.5),
         ])
 
     def __call__(self, roidb):
