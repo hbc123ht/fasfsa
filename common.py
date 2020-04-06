@@ -70,7 +70,7 @@ class SquareAspectRatioResize(ImageAugmentor):
     """
 
     def __init__(self, interp=cv2.INTER_LINEAR):
-        super(CustomResize, self).__init__()
+        super(SquareAspectRatioResize, self).__init__()
         self._init(locals())
 
     def get_transform(self, img):
