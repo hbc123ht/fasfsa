@@ -74,8 +74,8 @@ class TrainingDataPreprocessor:
         self.cfg = cfg
         self.aug = imgaug.AugmentorList([
             imgaug.RandomApplyAug(SquareAspectRatioResize(), 0.075),
-            imgaug.RandomApplyAug(imgaug.RandomCropRandomShape(wmin=int(
-                0.75*cfg.PREPROC.TRAIN_SHORT_EDGE_SIZE[0]), hmin=int(0.75*cfg.PREPROC.TRAIN_SHORT_EDGE_SIZE[0])), 0.25),
+            # imgaug.RandomApplyAug(imgaug.RandomCropRandomShape(wmin=int(
+            #     0.75*cfg.PREPROC.TRAIN_SHORT_EDGE_SIZE[0]), hmin=int(0.75*cfg.PREPROC.TRAIN_SHORT_EDGE_SIZE[0])), 0.25),
             CustomResize(cfg.PREPROC.TRAIN_SHORT_EDGE_SIZE, cfg.PREPROC.MAX_SIZE),
             imgaug.RandomApplyAug(imgaug.Flip(horiz=True), 0.5),
         ])
