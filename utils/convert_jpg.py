@@ -33,6 +33,7 @@ def convert_subset(subset_path):
     all_sample = glob.glob(os.path.join(subset_path, 'annos', '*.json'))
     for sample_index, sample in tqdm(enumerate(all_sample), total=len(all_sample)):
         raw_anno = json.loads(open(sample, 'r').read())
+        raw_anno['file_name'] = raw_anno['file_name'].replace('.png', '.jpg')
         file_path = os.path.join(subset_path, 'images', raw_anno['file_name'])
         if not os.path.exists(file_path):
             continue

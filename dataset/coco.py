@@ -229,17 +229,25 @@ def register_coco(basedir):
 
     # 80 names for COCO
     # For your own coco-format dataset, change this.
-    class_names = ["page", "profile_image", "van_tay", "passport_code"]
+    class_names = ["page", "profile_image", "van_tay"]#, "passport_code"]
     class_names = ["BG"] + class_names
 
-    for split in ["trainidcard", "validcard", "trainidcard_2", "validcard_2", "real_vnmb_500", "vnmb_failcase", "vnmb_failcase_2"]:
+    for split in ["trainidcard", "validcard", "500_vnmb_cleaned_cc_cm", "130_combined_missing_sep_finger"]:
         name = split
         DatasetRegistry.register(name, lambda x=split: COCODetection(basedir, x))
         DatasetRegistry.register_metadata(name, 'class_names', class_names)
 
 
 if __name__ == '__main__':
-    basedir = 'data/result_crop_augmented'
-    c = COCODetection(basedir, 'trainidcard')
+    basedir = '/Users/linus/techainer/real_data/CMND/500_vnmb_cleaned_cc_cm/'
+    c = COCODetection(basedir, '500_vnmb_cleaned_cc_cm')
     roidb = c.load(add_gt=True, add_mask=True)
     print("#Images:", len(roidb))
+
+    from viz import draw_annotation
+    from tensorpack.utils.viz import interactive_imshow as imshow
+    import cv2
+    for r in roidb:
+        im = cv2.imread(r["file_name"])
+        vis = draw_annotation(im, r["boxes"], r["class"], r["segmentation"])
+        imshow(vis)
