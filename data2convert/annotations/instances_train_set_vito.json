@@ -1,0 +1,245 @@
+{
+    "info": {
+        "description": "./data2convert dataset",
+        "url": "http://techainer.com",
+        "version": "1.0",
+        "year": 2020,
+        "contributor": "linus",
+        "date_created": "2020-08-27"
+    },
+    "images": [
+        {
+            "file_name": "3_image.jpg",
+            "height": 531,
+            "width": 942,
+            "id": 0
+        },
+        {
+            "file_name": "1_image.jpg",
+            "height": 1262,
+            "width": 2034,
+            "id": 1
+        },
+        {
+            "file_name": "2_image.jpg",
+            "height": 598,
+            "width": 987,
+            "id": 2
+        },
+        {
+            "file_name": "0_image.jpg",
+            "height": 883,
+            "width": 1436,
+            "id": 3
+        }
+    ],
+    "annotations": [
+        {
+            "id": 0,
+            "segmentation": [
+                [
+                    35,
+                    176,
+                    300,
+                    176,
+                    300,
+                    347,
+                    35,
+                    347
+                ]
+            ],
+            "area": 45315,
+            "iscrowd": 0,
+            "image_id": 0,
+            "category_id": 1,
+            "bbox": [
+                35,
+                176,
+                265,
+                171
+            ]
+        },
+        {
+            "id": 1,
+            "segmentation": [
+                [
+                    572,
+                    209,
+                    303,
+                    204,
+                    306,
+                    40,
+                    575,
+                    45
+                ]
+            ],
+            "area": 45968,
+            "iscrowd": 0,
+            "image_id": 0,
+            "category_id": 1,
+            "bbox": [
+                303,
+                40,
+                272,
+                169
+            ]
+        },
+        {
+            "id": 2,
+            "segmentation": [
+                [
+                    1387,
+                    230,
+                    1908,
+                    257,
+                    1892,
+                    576,
+                    1370,
+                    549
+                ]
+            ],
+            "area": 186148,
+            "iscrowd": 0,
+            "image_id": 1,
+            "category_id": 1,
+            "bbox": [
+                1370,
+                230,
+                538,
+                346
+            ]
+        },
+        {
+            "id": 3,
+            "segmentation": [
+                [
+                    537,
+                    1148,
+                    25,
+                    1085,
+                    66,
+                    757,
+                    577,
+                    820
+                ]
+            ],
+            "area": 215832,
+            "iscrowd": 0,
+            "image_id": 1,
+            "category_id": 1,
+            "bbox": [
+                25,
+                757,
+                552,
+                391
+            ]
+        },
+        {
+            "id": 4,
+            "segmentation": [
+                [
+                    738,
+                    20,
+                    981,
+                    36,
+                    969,
+                    203,
+                    726,
+                    186
+                ]
+            ],
+            "area": 46665,
+            "iscrowd": 0,
+            "image_id": 2,
+            "category_id": 1,
+            "bbox": [
+                726,
+                20,
+                255,
+                183
+            ]
+        },
+        {
+            "id": 5,
+            "segmentation": [
+                [
+                    228,
+                    320,
+                    465,
+                    324,
+                    462,
+                    498,
+                    224,
+                    494
+                ]
+            ],
+            "area": 42898,
+            "iscrowd": 0,
+            "image_id": 2,
+            "category_id": 1,
+            "bbox": [
+                224,
+                320,
+                241,
+                178
+            ]
+        },
+        {
+            "id": 6,
+            "segmentation": [
+                [
+                    428,
+                    29,
+                    812,
+                    62,
+                    791,
+                    303,
+                    406,
+                    269
+                ]
+            ],
+            "area": 111244,
+            "iscrowd": 0,
+            "image_id": 3,
+            "category_id": 1,
+            "bbox": [
+                406,
+                29,
+                406,
+                274
+            ]
+        },
+        {
+            "id": 7,
+            "segmentation": [
+                [
+                    1314,
+                    837,
+                    943,
+                    778,
+                    983,
+                    525,
+                    1354,
+                    584
+                ]
+            ],
+            "area": 128232,
+            "iscrowd": 0,
+            "image_id": 3,
+            "category_id": 1,
+            "bbox": [
+                943,
+                525,
+                411,
+                312
+            ]
+        }
+    ],
+    "categories": [
+        {
+            "supercategory": "page",
+            "id": 1,
+            "name": "page"
+        }
+    ]
+}

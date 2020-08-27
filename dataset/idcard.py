@@ -16,10 +16,7 @@ class IDCardDataset(DatasetSplit):
         assert len(self.all_samples) != 0, "The dataset is empty"
         self.images_path = os.path.join(self.data_path, 'images')
         self.class_name_to_id = {
-            'page': 1,
-            'profile_image': 2,
-            'van_tay': 3,
-            'passport_code': 4
+            'page': 1
         }
         self.class_names = list(self.class_name_to_id.keys())
 
@@ -114,7 +111,7 @@ def register_idcard(basedir):
         name = "idcard_" + split
         DatasetRegistry.register(name, lambda x=split: IDCardDataset(basedir, x))
         DatasetRegistry.register_metadata(
-            name, "class_names", ["BG", "page", "profile_image", "van_tay", "passport_code"])
+            name, "class_names", ["BG", "page"])
 
 
 if __name__ == '__main__':
