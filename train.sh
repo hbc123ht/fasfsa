@@ -1,4 +1,4 @@
-python3 train.py --config DATA.BASEDIR=/opt/bin/crop_data/10k_pp2_crop_augmented_json \
+python3 train.py --config DATA.BASEDIR=./data \
                           MODE_FPN=True \
                           TRAIN.BASE_LR=1e-2 \
                           TRAIN.EVAL_PERIOD=5 \

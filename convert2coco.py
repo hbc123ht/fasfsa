@@ -36,10 +36,8 @@ def convert_subset(subset_path):
     for sample_index, sample in tqdm(enumerate(all_sample), total=len(all_sample)):
         raw_anno = json.loads(open(sample, 'r').read())
         # file_path = os.path.join(subset_path, 'images', raw_anno['file_name'])
-        print(sample)
         file_path = sample.replace("label.json","image.jpg")
         file_name = file_path.split("/")[-1]
-        print(file_name)
         # print(file_path)
         if not os.path.exists(file_path):
             continue
@@ -88,8 +86,8 @@ if __name__ == "__main__":
     # for subset in ['train', 'val']:
     #     print('Converting', subset)
     #     subset_path = os.path.join(dateset_basedir, subset)
-    subset_path = "./data2convert"
-    annotation_path = './data2convert/annotations'
+    subset_path = "./final_data"
+    annotation_path = './annotations'
     os.makedirs(annotation_path, exist_ok=True)
     coco_json = convert_subset(subset_path)
 

@@ -97,9 +97,9 @@ _C.MODE_FPN = True
 _C.DATA.BASEDIR = 'data'
 # All available dataset names are defined in `dataset/coco.py:register_coco`.
 # All TRAIN dataset will be concatenated for training.
-_C.DATA.TRAIN = ('trainidcard', '130_combined_missing_sep_finger', '500_vnmb_cleaned_cc_cm')   # i.e. trainval35k
+_C.DATA.TRAIN = ('train_set_vito')   # i.e. trainval35k
 # Each VAL dataset will be evaluated separately (instead of concatenated)
-_C.DATA.VAL = ('validcard', '130_combined_missing_sep_finger', '500_vnmb_cleaned_cc_cm')  # AKA minival2014
+_C.DATA.VAL = ()  # AKA minival2014
 
 # These two configs will be populated later inside `finalize_configs`.
 _C.DATA.NUM_CATEGORY = -1  # without the background class (e.g., 80 for COCO)
@@ -239,7 +239,7 @@ _C.TEST.RESULTS_PER_IM = 100
 
 _C.freeze()  # avoid typo / wrong config keys
 
-_C.DATA.CLASS_NAMES = ['background', 'page', 'profile_image', 'van_tay']#, 'passport_code']
+_C.DATA.CLASS_NAMES = ['background', 'page']#, 'passport_code']
 
 def finalize_configs(is_training):
     """

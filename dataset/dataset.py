@@ -115,4 +115,5 @@ class DatasetRegistry():
         Returns:
             value
         """
+        print(DatasetRegistry._metadata_registry[name][key])
         return DatasetRegistry._metadata_registry[name][key]

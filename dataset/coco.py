@@ -17,9 +17,7 @@ __all__ = ['register_coco']
 class COCODetection(DatasetSplit):
     # handle a few special splits whose names do not match the directory names
     _INSTANCE_TO_BASEDIR = {
-        'valminusminival2014': 'val2014',
-        'minival2014': 'val2014',
-        'val2017_100': 'val2017',
+        'instances_train_set_vito': 'train_set_vito'
     }
 
     """
@@ -47,7 +45,9 @@ class COCODetection(DatasetSplit):
 
             use `COCODetection(DIR, 'XX')` and `COCODetection(DIR, 'YY')`
         """
+        print(basedir, split)
         basedir = os.path.expanduser(basedir)
+        print(basedir)
         self._imgdir = os.path.realpath(os.path.join(
             basedir, self._INSTANCE_TO_BASEDIR.get(split, split)))
         assert os.path.isdir(self._imgdir), "{} is not a directory!".format(self._imgdir)
@@ -229,7 +229,7 @@ def register_coco(basedir):
 
     # 80 names for COCO
     # For your own coco-format dataset, change this.
-    class_names = ["page", "profile_image", "van_tay"]#, "passport_code"]
+    class_names = ["page"]#, "passport_code"]
     class_names = ["BG"] + class_names
 
     for split in ["train_set_vito"]:
@@ -239,8 +239,8 @@ def register_coco(basedir):
 
 
 if __name__ == '__main__':
-    basedir = '/Users/linus/techainer/real_data/CMND/500_vnmb_cleaned_cc_cm/'
-    c = COCODetection(basedir, '500_vnmb_cleaned_cc_cm')
+    basedir = './data'
+    c = COCODetection(basedir, 'train_set_vito')
     roidb = c.load(add_gt=True, add_mask=True)
     print("#Images:", len(roidb))
 
